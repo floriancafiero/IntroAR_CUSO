@@ -545,4 +545,4 @@ meilleur_graph
 
 ### Remerciements
 
-Ce script s'inspire d'un cours de Y. Rochat (UniL)
+Ce script reprend les bases d'un cours de Y. Rochat (UniL) puis S. Gabay (UNIGE)
