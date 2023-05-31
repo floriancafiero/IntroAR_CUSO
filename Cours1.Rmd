@@ -1,7 +1,7 @@
 ---
 title: "1. Découvrir l'écosystème `R`"
-author: "Simon Gabay"
-date: "31/05/2022"
+author: "Florian Cafiero"
+date: "31/05/2023"
 output:
   html_document:
     highlight: pygments
@@ -54,7 +54,6 @@ On peut vérifier que le chemin vers le dossier de travail a bien été pris en 
 getwd()
 ```
 
-Tout est en ordre? Avançons!
 
 ## 2 Les fondamentaux
 
