@@ -1,0 +1,115 @@
+---
+title: "Analyse de réseau avec `R`"
+author: "Florian Cafiero"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    highlight: pygments
+    toc: true
+    toc_float:
+      toc_collapsed: true
+    theme: united
+---
+
+<a style="float:right; width: 20%;" rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Licence Creative Commons" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = 'hide', fig.show='hold')
+0. Préparatifs
+Dans cette première partie, nous allons préparer notre environnement de travail pour l'analyse de réseau avec R. Nous utiliserons les packages modernes du tidyverse, ainsi que tidygraph et ggraph pour manipuler et visualiser les graphes de manière efficace et intuitive.
+
+0.1 Création d'un projet RStudio
+Pour assurer la reproductibilité de notre travail, nous allons créer un projet RStudio dédié à ce cours.
+
+Ouvrez RStudio.
+Cliquez sur File > New Project... > New Directory > New Project.
+Donnez un nom à votre projet, par exemple Analyse_Reseau.
+Choisissez un emplacement sur votre ordinateur.
+Cliquez sur Create Project.
+0.2 Gestion des dépendances avec renv
+Pour gérer les packages et assurer que tous les participants utilisent les mêmes versions, nous allons utiliser le package renv.
+
+{r,
+# Installation du package renv s'il n'est pas déjà installé
+if(!require("renv")) install.packages("renv")
+
+# Initialisation de renv dans le projet
+renv::init(bare = TRUE)
+Note : Lors de l'initialisation, renv peut vous demander de confirmer certaines actions. Lisez attentivement les messages et acceptez si nécessaire.
+
+0.3 Installation et chargement des packages
+Nous allons installer et charger les packages nécessaires pour ce cours. Nous utiliserons la syntaxe moderne du tidyverse et des packages spécialisés pour l'analyse de réseaux.
+
+{r,
+
+# Liste des packages à installer
+packages <- c("tidyverse", "tidygraph", "ggraph", "igraph", "visNetwork", "networkD3", "corrr", "sf", "leaflet")
+
+# Installation des packages manquants
+missing_packages <- packages[!(packages %in% installed.packages()[,"Package"])]
+if(length(missing_packages)) install.packages(missing_packages)
+
+# Chargement des packages
+lapply(packages, library, character.only = TRUE)
+
+# Enregistrement des packages dans renv
+renv::snapshot()
+0.4 Chargement des données
+Nous allons utiliser les mêmes données que précédemment, à savoir un fichier de nœuds (nodes.csv) et un fichier d'arêtes (edges.csv). Assurez-vous que ces fichiers sont présents dans le dossier data/basic de votre projet.
+
+{r}
+Copier le code
+# Chargement des données avec readr
+nodes <- read_delim("data/basic/nodes.csv", delim = "\t", col_names = FALSE)
+edges <- read_delim("data/basic/edges.csv", delim = "\t", col_names = FALSE)
+
+# Attribution des noms de colonnes
+colnames(nodes) <- c("id", "label", "type")
+colnames(edges) <- c("from", "to")
+
+# Vérification des données
+head(nodes)
+head(edges)
+0.5 Vérification et préparation des données
+Il est important de vérifier que nos données sont cohérentes et qu'il n'y a pas de doublons ou d'incohérences.
+
+{r}
+
+# Nombre de nœuds et nœuds uniques
+n_nodes <- nrow(nodes)
+n_unique_nodes <- nodes %>% distinct(id) %>% nrow()
+
+cat("Nombre de nœuds :", n_nodes, "\n")
+cat("Nombre de nœuds uniques :", n_unique_nodes, "\n")
+
+# Nombre d'arêtes et arêtes uniques
+n_edges <- nrow(edges)
+n_unique_edges <- edges %>% distinct(from, to) %>% nrow()
+
+cat("Nombre d'arêtes :", n_edges, "\n")
+cat("Nombre d'arêtes uniques :", n_unique_edges, "\n")
+Si nous constatons des doublons dans les arêtes, nous pourrons les traiter plus tard en les transformant en poids.
+
+0.6 Création du graphe avec tidygraph
+Nous allons maintenant transformer ces données en un objet tbl_graph du package tidygraph, ce qui nous permettra de manipuler le graphe avec la syntaxe du tidyverse.
+
+{r}
+Copier le code
+library(tidygraph)
+
+# Création du graphe
+graph <- tbl_graph(nodes = nodes, edges = edges, directed = FALSE)
+
+# Inspection du graphe
+graph
+0.7 Visualisation initiale avec ggraph
+Pour visualiser rapidement notre graphe, nous pouvons utiliser le package ggraph, qui s'intègre parfaitement avec tidygraph.
+
+{r}
+library(ggraph)
+
+# Visualisation simple
+ggraph(graph, layout = "fr") +
+  geom_edge_link(alpha = 0.8) +
+  geom_node_point() +
+  theme_minimal()
