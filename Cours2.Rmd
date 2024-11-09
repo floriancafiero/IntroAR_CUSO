@@ -202,8 +202,6 @@ Nous allons détecter les communautés dans le réseau en utilisant l'algorithme
 # Détection des communautés
 graph_communities <- graph_centrality %>%
   mutate(community = as.factor(group_louvain()))
-```
-
 # Affichage des communautés
 graph_communities %>% as_tibble() %>% select(label, community) %>% head()
 1.4.1 Visualisation des communautés
