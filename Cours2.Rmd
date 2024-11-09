@@ -15,7 +15,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, results = 'hide', fig.show='hold')
-'''
+```
 
 0. Préparatifs
 Dans cette première partie, nous allons préparer notre environnement de travail pour l'analyse de réseau avec R. Nous utiliserons les packages modernes du tidyverse, ainsi que tidygraph et ggraph pour manipuler et visualiser les graphes de manière efficace et intuitive.
@@ -31,12 +31,13 @@ Cliquez sur Create Project.
 0.2 Gestion des dépendances avec renv
 Pour gérer les packages et assurer que tous les participants utilisent les mêmes versions, nous allons utiliser le package renv.
 
-{r,
+```{r setup, include=FALSE}
 # Installation du package renv s'il n'est pas déjà installé
 if(!require("renv")) install.packages("renv")
-
 # Initialisation de renv dans le projet
 renv::init(bare = TRUE)
+```
+
 Note : Lors de l'initialisation, renv peut vous demander de confirmer certaines actions. Lisez attentivement les messages et acceptez si nécessaire.
 
 0.3 Installation et chargement des packages
