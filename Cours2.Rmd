@@ -146,8 +146,7 @@ graph_simplified
 1.2 Mesures de centralité
 Nous allons calculer différentes mesures de centralité pour les nœuds du réseau : degré, proximité, intermédiarité et vecteur propre.
 
-{r}
-Copier le code
+```{r,
 library(tidygraph)
 
 # Calcul des mesures de centralité
@@ -267,7 +266,7 @@ ggraph(graph_paths, layout = "fr") +
 1.6.2 Matrice des distances
 Nous pouvons également calculer la matrice des distances entre tous les nœuds.
 
-{r}
+```{r,
 # Matrice des distances
 distance_matrix <- graph_communities %>% 
   convert(to_undirected) %>% 
@@ -281,7 +280,7 @@ distance_matrix[1:5, 1:5]
 1.7 Distribution des degrés
 Analyser la distribution des degrés peut nous informer sur la structure du réseau.
 
-{r}
+```{r,
 # Distribution des degrés
 degree_distribution <- graph_centrality %>%
   as_tibble() %>%
@@ -296,7 +295,7 @@ degree_distribution
 1.8 Sauvegarde des résultats
 Il est important de sauvegarder les données enrichies pour une utilisation ultérieure.
 
-{r,
+```{r,
 
 # Sauvegarde des données enrichies
 write_csv(as_tibble(graph_communities), "data/graph_nodes_enriched.csv")
@@ -354,7 +353,7 @@ ggraph(graph_communities, layout = "fr") +
 2.1.3 Visualisation hiérarchique
 Si le réseau a une structure hiérarchique, nous pouvons utiliser un layout adapté.
 
-{r,
+```{r,
 # Utilisation du layout 'dendrogramme' après avoir converti le graphe
 graph_tree <- graph_communities %>% 
   convert(to_tree, mode = "undirected")
@@ -392,7 +391,7 @@ ggplotly(p, tooltip = "text")
 Le package visNetwork permet de créer des visualisations interactives et dynamiques.
 
 2.3.1 Préparation des données
-{r,
+```{r,
 library(visNetwork)
 
 # Conversion des données pour visNetwork
@@ -431,7 +430,7 @@ visNetwork(nodes_vis, edges_vis) %>%
 Si vos données comprennent des coordonnées géographiques, vous pouvez les visualiser sur une carte interactive.
 
 2.4.1 Chargement des données géographiques
-{r,
+```{r,
 # Chargement des données géographiques
 nodes_geo <- read_delim("data/geo/nodes.csv", delim = "\t", col_names = FALSE)
 edges_geo <- read_delim("data/geo/edges.csv", delim = "\t", col_names = FALSE)
@@ -446,7 +445,7 @@ nodes_sf <- st_as_sf(nodes_geo, coords = c("lon", "lat"), crs = 4326)
 
 2.4.2 Création du graphe géographique
 
-{r,
+```{r,
 # Création du graphe avec tidygraph
 graph_geo <- tbl_graph(nodes = nodes_geo, edges = edges_geo, directed = FALSE)
 
@@ -481,7 +480,7 @@ leaflet() %>%
 
 2.5 Sauvegarde et exportation des visualisations
 2.5.1 Sauvegarde des graphiques statiques
-{r,
+```{r,
 # Sauvegarde du dernier graphique ggplot en PNG
 ggsave("visualisation_avancee.png", width = 10, height = 8, dpi = 300)
 
@@ -512,7 +511,7 @@ visSave(
 ```
 
 2.5.3 Exportation des cartes interactives
-{r,
+```{r,
 # Sauvegarde de la carte leaflet
 library(htmlwidgets)
 saveWidget(leaflet() %>%
