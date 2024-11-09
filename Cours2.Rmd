@@ -15,6 +15,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, results = 'hide', fig.show='hold')
+'''
+
 0. Préparatifs
 Dans cette première partie, nous allons préparer notre environnement de travail pour l'analyse de réseau avec R. Nous utiliserons les packages modernes du tidyverse, ainsi que tidygraph et ggraph pour manipuler et visualiser les graphes de manière efficace et intuitive.
 
