@@ -121,3 +121,167 @@ ggraph(graph, layout = "fr") +
   geom_node_point() +
   theme_minimal()
 ```
+
+# 1. Manipulation et exploration du réseau
+
+Dans cette deuxième partie, nous allons explorer et analyser le réseau en utilisant les outils modernes de `tidygraph` et `ggraph`. Nous aborderons les mesures de centralité, la détection de communautés et d'autres analyses pertinentes pour les sciences humaines et sociales.
+
+## 1.1 Simplification du réseau
+
+Avant de commencer, nous allons simplifier le réseau en combinant les arêtes multiples et en supprimant les boucles si nécessaire.
+
+```{r}
+# Combiner les arêtes multiples en calculant le poids
+graph_simplified <- graph %>%
+  activate(edges) %>%
+  mutate(weight = 1) %>%
+  group_by(from, to) %>%
+  summarise(weight = sum(weight)) %>%
+  ungroup() %>%
+  activate(nodes)
+
+# Vérification
+graph_simplified
+1.2 Mesures de centralité
+Nous allons calculer différentes mesures de centralité pour les nœuds du réseau : degré, proximité, intermédiarité et vecteur propre.
+
+{r}
+Copier le code
+library(tidygraph)
+
+# Calcul des mesures de centralité
+graph_centrality <- graph_simplified %>%
+  mutate(
+    degree = centrality_degree(mode = 'all'),
+    closeness = centrality_closeness(),
+    betweenness = centrality_betweenness(),
+    eigen = centrality_eigen()
+  )
+
+# Affichage des premières lignes
+graph_centrality %>% as_tibble() %>% head()
+1.3 Visualisation des centralités
+Nous pouvons visualiser le réseau en ajustant la taille ou la couleur des nœuds en fonction des mesures de centralité.
+
+1.3.1 Centralité de degré
+{r}
+Copier le code
+library(ggraph)
+
+# Visualisation avec la taille des nœuds proportionnelle au degré
+ggraph(graph_centrality, layout = "fr") +
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = degree, color = type)) +
+  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
+  scale_size_continuous(range = c(3, 10)) +
+  theme_minimal() +
+  labs(title = "Centralité de degré", size = "Degré", color = "Type")
+1.3.2 Centralité d'intermédiarité
+{r}
+Copier le code
+# Visualisation avec la couleur des nœuds proportionnelle à l'intermédiarité
+ggraph(graph_centrality, layout = "fr") +
+  geom_edge_link(alpha = 0.5) +
+  geom_node_point(aes(size = 5, color = betweenness)) +
+  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
+  scale_color_viridis_c() +
+  theme_minimal() +
+  labs(title = "Centralité d'intermédiarité", color = "Betweenness")
+1.4 Détection de communautés
+Nous allons détecter les communautés dans le réseau en utilisant l'algorithme de Louvain, qui est efficace pour les grands réseaux.
+
+{r}
+Copier le code
+# Détection des communautés
+graph_communities <- graph_centrality %>%
+  mutate(community = as.factor(group_louvain()))
+
+# Affichage des communautés
+graph_communities %>% as_tibble() %>% select(label, community) %>% head()
+1.4.1 Visualisation des communautés
+{r}
+# Visualisation avec les communautés en couleur
+ggraph(graph_communities, layout = "fr") +
+  geom_edge_link(alpha = 0.2) +
+  geom_node_point(aes(color = community, size = degree)) +
+  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
+  theme_minimal() +
+  labs(title = "Détection de communautés (Louvain)", color = "Communauté", size = "Degré")
+1.5 Analyse des communautés
+Nous pouvons analyser la composition des communautés pour voir si elles correspondent à des types spécifiques ou à d'autres attributs.
+
+{r}
+# Comptage des types par communauté
+community_analysis <- graph_communities %>%
+  as_tibble() %>%
+  group_by(community, type) %>%
+  summarise(count = n()) %>%
+  arrange(community)
+
+# Affichage
+community_analysis
+1.6 Chemins et distances
+1.6.1 Plus court chemin entre deux nœuds
+Nous pouvons calculer le plus court chemin entre deux individus, par exemple entre "Thomas Jolly" et "Pierre Corneille".
+
+{r}
+# Identification des indices des nœuds
+from_node <- which(V(graph_communities)$label == "Thomas Jolly")
+to_node <- which(V(graph_communities)$label == "Pierre Corneille")
+
+# Calcul du plus court chemin
+shortest_path_nodes <- shortest_paths(graph_communities, from = from_node, to = to_node)$vpath[[1]]
+
+# Marquage des nœuds et arêtes du chemin
+graph_paths <- graph_communities %>%
+  mutate(is_in_path = ifelse(node_is_in(shortest_path_nodes), TRUE, FALSE)) %>%
+  activate(edges) %>%
+  mutate(is_in_path = edge_is_between(from = shortest_path_nodes))
+
+# Visualisation du chemin
+ggraph(graph_paths, layout = "fr") +
+  geom_edge_link(aes(color = is_in_path), alpha = 0.5) +
+  geom_node_point(aes(color = is_in_path), size = 5) +
+  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
+  scale_color_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
+  theme_minimal() +
+  labs(title = "Plus court chemin entre Thomas Jolly et Pierre Corneille", color = "Dans le chemin")
+1.6.2 Matrice des distances
+Nous pouvons également calculer la matrice des distances entre tous les nœuds.
+
+{r}
+# Matrice des distances
+distance_matrix <- graph_communities %>% 
+  convert(to_undirected) %>% 
+  distances()
+
+# Affichage de la matrice pour les premiers nœuds
+distance_matrix[1:5, 1:5]
+1.7 Distribution des degrés
+Analyser la distribution des degrés peut nous informer sur la structure du réseau.
+
+{r}
+# Distribution des degrés
+degree_distribution <- graph_centrality %>%
+  as_tibble() %>%
+  ggplot(aes(x = degree)) +
+  geom_histogram(binwidth = 1, fill = "skyblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Distribution des degrés", x = "Degré", y = "Fréquence")
+
+degree_distribution
+1.8 Sauvegarde des résultats
+Il est important de sauvegarder les données enrichies pour une utilisation ultérieure.
+
+{r}
+
+# Sauvegarde des données enrichies
+write_csv(as_tibble(graph_communities), "data/graph_nodes_enriched.csv")
+write_csv(as_tibble(graph_communities %>% activate(edges)), "data/graph_edges_enriched.csv")
+Copier le code
+
+
+
+
+
+
