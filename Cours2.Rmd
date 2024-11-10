@@ -13,59 +13,46 @@ output:
 
 <a style="float:right; width: 20%;" rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Licence Creative Commons" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"/></a>
 
-```{r, include=FALSE}
+```{r} include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, results = 'hide', fig.show='hold')
 ```
 
-0. Préparatifs
-Dans cette première partie, nous allons préparer notre environnement de travail pour l'analyse de réseau avec R. Nous utiliserons les packages modernes du tidyverse, ainsi que tidygraph et ggraph pour manipuler et visualiser les graphes de manière efficace et intuitive.
+# Préparatifs
 
-0.1 Création d'un projet RStudio
-Pour assurer la reproductibilité de notre travail, nous allons créer un projet RStudio dédié à ce cours.
+Dans cette première partie, nous allons préparer notre environnement de travail pour l'analyse de réseau avec R. Nous utiliserons les packages du tidyverse, ainsi que tidygraph et ggraph pour manipuler et visualiser les graphes de manière efficace et intuitive.
 
-Ouvrez RStudio.
-Cliquez sur File > New Project... > New Directory > New Project.
-Donnez un nom à votre projet, par exemple Analyse_Reseau.
-Choisissez un emplacement sur votre ordinateur.
-Cliquez sur Create Project.
-0.2 Gestion des dépendances avec renv
-Pour gérer les packages et assurer que tous les participants utilisent les mêmes versions, nous allons utiliser le package renv.
 
-```{r, include=FALSE}
-# Installation du package renv s'il n'est pas déjà installé
-if(!require("renv")) install.packages("renv")
-# Initialisation de renv dans le projet
-renv::init(bare = TRUE)
+```{r}
+setwd("/home/fcafiero/Documents/Cuso_R/")
 ```
 
-Note : Lors de l'initialisation, renv peut vous demander de confirmer certaines actions. Lisez attentivement les messages et acceptez si nécessaire.
+Nous allons installer et charger les packages nécessaires pour ce cours. 
 
-0.3 Installation et chargement des packages
-Nous allons installer et charger les packages nécessaires pour ce cours. Nous utiliserons la syntaxe moderne du tidyverse et des packages spécialisés pour l'analyse de réseaux.
+Attention: Pour les utilisateurs Linux (et certains MacOs?), certaines dépendances ne vont pas s'installer sans interventions. Dans le terminal, lancez le code suivant:
+sudo apt update
+sudo apt install libudunits2-dev libgdal-dev libgeos-dev libproj-dev
+sudo apt install libcurl4-openssl-dev libssl-dev libxml2-dev
+sudo apt install libglpk-dev libharfbuzz-dev libfribidi-dev libfontconfig1-dev
+sudo apt install gfortran
 
-```{r,
 
+```{r}
 # Liste des packages à installer
-packages <- c("tidyverse", "tidygraph", "ggraph", "igraph", "visNetwork", "networkD3", "corrr", "sf", "leaflet")
+packages <- c("tidyverse", "tidygraph", "ggraph", "igraph", "visNetwork", "networkD3", "corrr", "sf", "leaflet", "plotly")
 
 # Installation des packages manquants
 missing_packages <- packages[!(packages %in% installed.packages()[,"Package"])]
 if(length(missing_packages)) install.packages(missing_packages)
-
-# Chargement des packages
-lapply(packages, library, character.only = TRUE)
-
-# Enregistrement des packages dans renv
-renv::snapshot()
 ```
 
 0.4 Chargement des données
 Nous allons utiliser les mêmes données que précédemment, à savoir un fichier de nœuds (nodes.csv) et un fichier d'arêtes (edges.csv). Assurez-vous que ces fichiers sont présents dans le dossier data/basic de votre projet.
 
-```{r,
+```{r}
+library(readr)
 # Chargement des données avec readr
-nodes <- read_delim("data/basic/nodes.csv", delim = "\t", col_names = FALSE)
-edges <- read_delim("data/basic/edges.csv", delim = "\t", col_names = FALSE)
+nodes <- read_delim("/home/fcafiero/Documents/Cuso_R/data/basic/nodes.csv", delim = "\t", col_names = FALSE)
+edges <- read_delim("/home/fcafiero/Documents/Cuso_R/data/basic/edges.csv", delim = "\t", col_names = FALSE)
 
 # Attribution des noms de colonnes
 colnames(nodes) <- c("id", "label", "type")
@@ -79,7 +66,8 @@ head(edges)
 0.5 Vérification et préparation des données
 Il est important de vérifier que nos données sont cohérentes et qu'il n'y a pas de doublons ou d'incohérences.
 
-```{r,
+```{r}
+library(dplyr)
 # Nombre de nœuds et nœuds uniques
 n_nodes <- nrow(nodes)
 n_unique_nodes <- nodes %>% distinct(id) %>% nrow()
@@ -93,6 +81,7 @@ n_unique_edges <- edges %>% distinct(from, to) %>% nrow()
 
 cat("Nombre d'arêtes :", n_edges, "\n")
 cat("Nombre d'arêtes uniques :", n_unique_edges, "\n")
+
 ```
 
 Si nous constatons des doublons dans les arêtes, nous pourrons les traiter plus tard en les transformant en poids.
@@ -100,19 +89,58 @@ Si nous constatons des doublons dans les arêtes, nous pourrons les traiter plus
 0.6 Création du graphe avec tidygraph
 Nous allons maintenant transformer ces données en un objet tbl_graph du package tidygraph, ce qui nous permettra de manipuler le graphe avec la syntaxe du tidyverse.
 
-```{r,
+```{r}
+library(readr)
 library(tidygraph)
-# Création du graphe
-graph <- tbl_graph(nodes = nodes, edges = edges, directed = FALSE)
-# Inspection du graphe
-graph
+library(igraph)
+
+# Load the data
+nodes <- read_delim("/home/fcafiero/Documents/Cuso_R/data/basic/nodes.csv", delim = "\t", col_names = FALSE)
+edges <- read_delim("/home/fcafiero/Documents/Cuso_R/data/basic/edges.csv", delim = "\t", col_names = FALSE)
+
+# Assign column names
+colnames(nodes) <- c("id", "label", "type")
+colnames(edges) <- c("from", "to")
+
+# Convert IDs to integer
+nodes$id <- as.integer(nodes$id)
+edges$from <- as.integer(edges$from)
+edges$to <- as.integer(edges$to)
+
+# Verify that all edge references exist in nodes
+missing_from_ids <- setdiff(edges$from, nodes$id)
+missing_to_ids <- setdiff(edges$to, nodes$id)
+
+if (length(missing_from_ids) > 0) {
+  stop("The following 'from' IDs are not present in nodes: ", paste(missing_from_ids, collapse = ", "))
+}
+
+if (length(missing_to_ids) > 0) {
+  stop("The following 'to' IDs are not present in nodes: ", paste(missing_to_ids, collapse = ", "))
+}
+
+# Check for duplicates in nodes
+if (any(duplicated(nodes$id))) {
+  stop("Duplicate IDs found in nodes.")
+}
+
+# Create the graph using igraph
+graph_ig <- graph_from_data_frame(d = edges, vertices = nodes, directed = FALSE)
+
+# Convert to tidygraph
+graph <- as_tbl_graph(graph_ig)
+
+# Inspect the graph
+print(graph)
+
 ```
+
 
 
 0.7 Visualisation initiale avec ggraph
 Pour visualiser rapidement notre graphe, nous pouvons utiliser le package ggraph, qui s'intègre parfaitement avec tidygraph.
 
-```{r,
+```{r}
 library(ggraph)
 
 # Visualisation simple
@@ -134,19 +162,21 @@ Avant de commencer, nous allons simplifier le réseau en combinant les arêtes m
 # Combiner les arêtes multiples en calculant le poids
 graph_simplified <- graph %>%
   activate(edges) %>%
-  mutate(weight = 1) %>%
-  group_by(from, to) %>%
-  summarise(weight = sum(weight)) %>%
-  ungroup() %>%
-  activate(nodes)
-```
+  as_tibble() %>%  # Convertir les arêtes en tibble pour utiliser group_by et summarise
+  mutate(weight = 1) %>%  # Initialiser le poids à 1 pour chaque arête
+  group_by(from, to) %>%  # Regrouper les arêtes entre les mêmes nœuds
+  summarise(weight = sum(weight), .groups = 'drop') %>%  # Calculer le poids total et supprimer les groupes
+  # Recréer le graphe avec les nouvelles arêtes simplifiées
+  {tbl_graph(nodes = graph %>% activate(nodes) %>% as_tibble(), edges = ., directed = FALSE)}
 
 # Vérification
 graph_simplified
+```
+
 1.2 Mesures de centralité
 Nous allons calculer différentes mesures de centralité pour les nœuds du réseau : degré, proximité, intermédiarité et vecteur propre.
 
-```{r,
+```{r}
 library(tidygraph)
 
 # Calcul des mesures de centralité
@@ -168,7 +198,7 @@ Nous pouvons visualiser le réseau en ajustant la taille ou la couleur des nœud
 
 1.3.1 Centralité de degré
 
-```{r,
+```{r}
 library(ggraph)
 
 # Visualisation avec la taille des nœuds proportionnelle au degré
@@ -184,7 +214,7 @@ ggraph(graph_centrality, layout = "fr") +
 
 1.3.2 Centralité d'intermédiarité
 
-```{r,
+```{r}
 # Visualisation avec la couleur des nœuds proportionnelle à l'intermédiarité
 ggraph(graph_centrality, layout = "fr") +
   geom_edge_link(alpha = 0.5) +
@@ -198,14 +228,16 @@ ggraph(graph_centrality, layout = "fr") +
 1.4 Détection de communautés
 Nous allons détecter les communautés dans le réseau en utilisant l'algorithme de Louvain, qui est efficace pour les grands réseaux.
 
-```{r,
+```{r}
 # Détection des communautés
 graph_communities <- graph_centrality %>%
   mutate(community = as.factor(group_louvain()))
 # Affichage des communautés
 graph_communities %>% as_tibble() %>% select(label, community) %>% head()
+```
+
 1.4.1 Visualisation des communautés
-{r}
+```{r}
 # Visualisation avec les communautés en couleur
 ggraph(graph_communities, layout = "fr") +
   geom_edge_link(alpha = 0.2) +
@@ -218,7 +250,7 @@ ggraph(graph_communities, layout = "fr") +
 1.5 Analyse des communautés
 Nous pouvons analyser la composition des communautés pour voir si elles correspondent à des types spécifiques ou à d'autres attributs.
 
-```{r,
+```{r}
 # Comptage des types par communauté
 community_analysis <- graph_communities %>%
   as_tibble() %>%
@@ -235,19 +267,28 @@ community_analysis
 1.6.1 Plus court chemin entre deux nœuds
 Nous pouvons calculer le plus court chemin entre deux individus, par exemple entre "Thomas Jolly" et "Pierre Corneille".
 
-```{r,
+```{r}
 # Identification des indices des nœuds
 from_node <- which(V(graph_communities)$label == "Thomas Jolly")
 to_node <- which(V(graph_communities)$label == "Pierre Corneille")
 
-# Calcul du plus court chemin
-shortest_path_nodes <- shortest_paths(graph_communities, from = from_node, to = to_node)$vpath[[1]]
+# Calcul du plus court chemin en obtenant à la fois les nœuds et les arêtes
+shortest_path_result <- shortest_paths(graph_communities, from = from_node, to = to_node, output = "both")
 
-# Marquage des nœuds et arêtes du chemin
+# Extraction des indices des nœuds du chemin le plus court
+shortest_path_nodes <- shortest_path_result$vpath[[1]]
+
+# Extraction des indices des arêtes du chemin le plus court
+shortest_path_edges <- shortest_path_result$epath[[1]]
+
+# Marquage des nœuds du chemin
 graph_paths <- graph_communities %>%
-  mutate(is_in_path = ifelse(node_is_in(shortest_path_nodes), TRUE, FALSE)) %>%
+  activate(nodes) %>%
+  mutate(is_in_path = row_number() %in% shortest_path_nodes) %>%  # Vérifie si chaque nœud est dans le chemin
+
+  # Marquage des arêtes du chemin
   activate(edges) %>%
-  mutate(is_in_path = edge_is_between(from = shortest_path_nodes))
+  mutate(is_in_path = row_number() %in% shortest_path_edges)  # Utilise row_number() au lieu de edge_index
 
 # Visualisation du chemin
 ggraph(graph_paths, layout = "fr") +
@@ -257,13 +298,14 @@ ggraph(graph_paths, layout = "fr") +
   scale_color_manual(values = c("FALSE" = "grey", "TRUE" = "red")) +
   theme_minimal() +
   labs(title = "Plus court chemin entre Thomas Jolly et Pierre Corneille", color = "Dans le chemin")
+
 ```
 
 
 1.6.2 Matrice des distances
 Nous pouvons également calculer la matrice des distances entre tous les nœuds.
 
-```{r,
+```{r}
 # Matrice des distances
 distance_matrix <- graph_communities %>% 
   convert(to_undirected) %>% 
@@ -277,7 +319,7 @@ distance_matrix[1:5, 1:5]
 1.7 Distribution des degrés
 Analyser la distribution des degrés peut nous informer sur la structure du réseau.
 
-```{r,
+```{r}
 # Distribution des degrés
 degree_distribution <- graph_centrality %>%
   as_tibble() %>%
@@ -292,240 +334,11 @@ degree_distribution
 1.8 Sauvegarde des résultats
 Il est important de sauvegarder les données enrichies pour une utilisation ultérieure.
 
-```{r,
+```{r}
 
 # Sauvegarde des données enrichies
-write_csv(as_tibble(graph_communities), "data/graph_nodes_enriched.csv")
-write_csv(as_tibble(graph_communities %>% activate(edges)), "data/graph_edges_enriched.csv")
-```
-
-# 2. Visualisation avancée et interactive
-
-Dans cette troisième partie, nous allons nous concentrer sur la visualisation avancée du réseau en utilisant des techniques interactives pour mieux explorer et présenter les données. Nous utiliserons principalement les packages `ggraph`, `plotly`, `visNetwork` et `leaflet`.
-
-## 2.1 Visualisations avancées avec `ggraph`
-
-Nous allons personnaliser davantage nos graphiques en utilisant les fonctionnalités avancées de `ggraph`.
-
-### 2.1.1 Personnalisation des layouts
-
-```{r,
-# Utilisation du layout 'stress' pour une meilleure répartition des nœuds
-ggraph(graph_communities, layout = "stress") +
-  geom_edge_link(aes(edge_width = weight), alpha = 0.5, color = "grey") +
-  geom_node_point(aes(color = community, size = degree)) +
-  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
-  scale_edge_width(range = c(0.2, 2)) +
-  theme_graph() +
-  labs(title = "Visualisation avancée avec le layout 'stress'",
-       edge_width = "Poids des arêtes",
-       color = "Communauté",
-       size = "Degré")
-```
-
-
-
-2.1.2 Utilisation de palettes de couleurs
-```{r,
-
-# Installation du package RColorBrewer si nécessaire
-if(!require("RColorBrewer")) install.packages("RColorBrewer")
-library(RColorBrewer)
-
-# Choix d'une palette de couleurs
-palette <- brewer.pal(n = length(unique(graph_communities$community)), name = "Set2")
-
-# Application de la palette
-ggraph(graph_communities, layout = "fr") +
-  geom_edge_link(alpha = 0.3, color = "grey") +
-  geom_node_point(aes(color = community, size = degree)) +
-  geom_node_text(aes(label = label), repel = TRUE, size = 3) +
-  scale_color_manual(values = palette) +
-  theme_graph() +
-  labs(title = "Visualisation avec une palette personnalisée",
-       color = "Communauté",
-       size = "Degré")
-```
-
-2.1.3 Visualisation hiérarchique
-Si le réseau a une structure hiérarchique, nous pouvons utiliser un layout adapté.
-
-```{r,
-# Utilisation du layout 'dendrogramme' après avoir converti le graphe
-graph_tree <- graph_communities %>% 
-  convert(to_tree, mode = "undirected")
-
-ggraph(graph_tree, layout = "dendrogram", circular = FALSE) +
-  geom_edge_diagonal() +
-  geom_node_point(aes(color = community, size = degree)) +
-  geom_node_text(aes(label = label), hjust = -0.1, size = 3) +
-  theme_graph() +
-  labs(title = "Visualisation hiérarchique du réseau",
-       color = "Communauté",
-       size = "Degré")
-```
-
-
-2.2 Visualisation interactive avec plotly
-Nous pouvons rendre nos graphiques interactifs en utilisant plotly, ce qui permet d'afficher des informations supplémentaires au survol des nœuds.
-
-```{r,
-Copier le code
-library(plotly)
-
-# Création d'un graphique interactif
-p <- ggraph(graph_communities, layout = "fr") +
-  geom_edge_link(alpha = 0.3, color = "grey") +
-  geom_node_point(aes(color = community, size = degree, text = paste("Nom:", label, "<br>Type:", type))) +
-  theme_void()
-
-# Conversion en graphique interactif
-ggplotly(p, tooltip = "text")
-```
-
-
-2.3 Visualisation interactive avec visNetwork
-Le package visNetwork permet de créer des visualisations interactives et dynamiques.
-
-2.3.1 Préparation des données
-```{r,
-library(visNetwork)
-
-# Conversion des données pour visNetwork
-nodes_vis <- graph_communities %>%
-  as_tibble() %>%
-  mutate(id = id,
-         label = label,
-         group = community,
-         title = paste0("<p><b>", label, "</b><br>Type: ", type, "<br>Degré: ", degree, "</p>"))
-
-edges_vis <- graph_communities %>%
-  activate(edges) %>%
-  as_tibble()
-
-# Vérification
-head(nodes_vis)
-head(edges_vis)
-```
-
-
-
-2.3.2 Création du réseau interactif
-```{r,
-# Création du réseau interactif
-visNetwork(nodes_vis, edges_vis) %>%
-  visNodes(scaling = list(min = 10, max = 30)) %>%
-  visEdges(scaling = list(min = 1, max = 10)) %>%
-  visOptions(highlightNearest = list(enabled = TRUE, degree = 1),
-             nodesIdSelection = TRUE) %>%
-  visLayout(randomSeed = 42) %>%
-  visPhysics(stabilization = FALSE) %>%
-  visLegend()
-```
-
-2.4 Visualisation géographique avec sf et leaflet
-Si vos données comprennent des coordonnées géographiques, vous pouvez les visualiser sur une carte interactive.
-
-2.4.1 Chargement des données géographiques
-```{r,
-# Chargement des données géographiques
-nodes_geo <- read_delim("data/geo/nodes.csv", delim = "\t", col_names = FALSE)
-edges_geo <- read_delim("data/geo/edges.csv", delim = "\t", col_names = FALSE)
-
-colnames(nodes_geo) <- c("id", "label", "lat", "lon")
-colnames(edges_geo) <- c("from", "to")
-
-# Conversion en objet sf
-nodes_sf <- st_as_sf(nodes_geo, coords = c("lon", "lat"), crs = 4326)
-```
-
-
-2.4.2 Création du graphe géographique
-
-```{r,
-# Création du graphe avec tidygraph
-graph_geo <- tbl_graph(nodes = nodes_geo, edges = edges_geo, directed = FALSE)
-
-# Ajout des coordonnées géographiques
-graph_geo <- graph_geo %>%
-  activate(nodes) %>%
-  mutate(lon = as.numeric(lon), lat = as.numeric(lat))
-```
-
-
-2.4.3 Visualisation avec leaflet
-```{r,
-library(leaflet)
-
-# Création de la carte interactive
-leaflet() %>%
-  addTiles() %>%
-  addCircleMarkers(data = nodes_geo, ~lon, ~lat,
-                   label = ~label,
-                   color = "blue",
-                   radius = 5) %>%
-  addPolylines(data = edges_geo %>%
-                 left_join(nodes_geo, by = c("from" = "id")) %>%
-                 rename(lon_from = lon, lat_from = lat) %>%
-                 left_join(nodes_geo, by = c("to" = "id")) %>%
-                 rename(lon_to = lon, lat_to = lat),
-               lng = ~c(lon_from, lon_to),
-               lat = ~c(lat_from, lat_to),
-               color = "grey")
-```
-
-
-2.5 Sauvegarde et exportation des visualisations
-2.5.1 Sauvegarde des graphiques statiques
-```{r,
-# Sauvegarde du dernier graphique ggplot en PNG
-ggsave("visualisation_avancee.png", width = 10, height = 8, dpi = 300)
-
-# Sauvegarde en PDF
-ggsave("visualisation_avancee.pdf", width = 10, height = 8)
-```
-
-2.5.2 Exportation des visualisations interactives
-Vous pouvez exporter vos visualisations interactives au format HTML pour les partager.
-
-```{r,
-
-# Sauvegarde du graphique plotly
-htmlwidgets::saveWidget(ggplotly(p, tooltip = "text"), "graphique_interactif.html")
-
-# Sauvegarde du réseau visNetwork
-visSave(
-  visNetwork(nodes_vis, edges_vis) %>%
-    visNodes(scaling = list(min = 10, max = 30)) %>%
-    visEdges(scaling = list(min = 1, max = 10)) %>%
-    visOptions(highlightNearest = list(enabled = TRUE, degree = 1),
-               nodesIdSelection = TRUE) %>%
-    visLayout(randomSeed = 42) %>%
-    visPhysics(stabilization = FALSE) %>%
-    visLegend(),
-  file = "reseau_interactif.html"
-)
-```
-
-2.5.3 Exportation des cartes interactives
-```{r,
-# Sauvegarde de la carte leaflet
-library(htmlwidgets)
-saveWidget(leaflet() %>%
-             addTiles() %>%
-             addCircleMarkers(data = nodes_geo, ~lon, ~lat,
-                              label = ~label,
-                              color = "blue",
-                              radius = 5) %>%
-             addPolylines(data = edges_geo %>%
-                            left_join(nodes_geo, by = c("from" = "id")) %>%
-                            rename(lon_from = lon, lat_from = lat) %>%
-                            left_join(nodes_geo, by = c("to" = "id")) %>%
-                            rename(lon_to = lon, lat_to = lat),
-                          lng = ~c(lon_from, lon_to),
-                          lat = ~c(lat_from, lat_to),
-                          color = "grey"),
-           "carte_interactive.html")
+write_csv(as_tibble(graph_communities), "/home/fcafiero/Documents/Cuso_R/data/graph_nodes_enriched.csv")
+write_csv(as_tibble(graph_communities %>% activate(edges)), "/home/fcafiero/Documents/Cuso_R/data/graph_edges_enriched.csv")
 ```
 
 # 2. Visualisation avancée et interactive
@@ -552,8 +365,11 @@ ggraph(graph_communities, layout = "stress") +
        size = "Degré")
 ```
 
+
+
 2.1.2 Utilisation de palettes de couleurs
-```{r,
+```{r}
+
 # Installation du package RColorBrewer si nécessaire
 if(!require("RColorBrewer")) install.packages("RColorBrewer")
 library(RColorBrewer)
@@ -573,29 +389,10 @@ ggraph(graph_communities, layout = "fr") +
        size = "Degré")
 ```
 
-
-2.1.3 Visualisation hiérarchique
-Si le réseau a une structure hiérarchique, nous pouvons utiliser un layout adapté.
-
-```{r,
-# Utilisation du layout 'dendrogramme' après avoir converti le graphe
-graph_tree <- graph_communities %>% 
-  convert(to_tree, mode = "undirected")
-
-ggraph(graph_tree, layout = "dendrogram", circular = FALSE) +
-  geom_edge_diagonal() +
-  geom_node_point(aes(color = community, size = degree)) +
-  geom_node_text(aes(label = label), hjust = -0.1, size = 3) +
-  theme_graph() +
-  labs(title = "Visualisation hiérarchique du réseau",
-       color = "Communauté",
-       size = "Degré")
-```
-
 2.2 Visualisation interactive avec plotly
 Nous pouvons rendre nos graphiques interactifs en utilisant plotly, ce qui permet d'afficher des informations supplémentaires au survol des nœuds.
 
-```{r,
+```{r}
 library(plotly)
 
 # Création d'un graphique interactif
@@ -608,32 +405,47 @@ p <- ggraph(graph_communities, layout = "fr") +
 ggplotly(p, tooltip = "text")
 ```
 
+
 2.3 Visualisation interactive avec visNetwork
 Le package visNetwork permet de créer des visualisations interactives et dynamiques.
 
 2.3.1 Préparation des données
-```{r,
+```{r}
 library(visNetwork)
+library(tidygraph)
+library(dplyr)
 
-# Conversion des données pour visNetwork
+# Assurez-vous que les colonnes nécessaires existent
+# Convertir le graphe en tibble pour accéder aux nœuds
 nodes_vis <- graph_communities %>%
+  activate(nodes) %>%  # Activer les nœuds pour les manipuler
   as_tibble() %>%
-  mutate(id = id,
-         label = label,
-         group = community,
-         title = paste0("<p><b>", label, "</b><br>Type: ", type, "<br>Degré: ", degree, "</p>"))
+  mutate(
+    id = row_number(),  # Si `id` n'existe pas, utilisez row_number() pour en créer un
+    label = label,
+    group = community,
+    title = paste0("<p><b>", label, "</b><br>Type: ", type, "<br>Degré: ", degree, "</p>")
+  )
 
+# Convertir les arêtes en tibble
 edges_vis <- graph_communities %>%
   activate(edges) %>%
-  as_tibble()
+  as_tibble() %>%
+  mutate(
+    from = as.integer(from),
+    to = as.integer(to)
+  )
 
-# Vérification
+# Vérification des données
 head(nodes_vis)
 head(edges_vis)
+
 ```
 
+
+
 2.3.2 Création du réseau interactif
-```{r,
+```{r}
 # Création du réseau interactif
 visNetwork(nodes_vis, edges_vis) %>%
   visNodes(scaling = list(min = 10, max = 30)) %>%
@@ -649,10 +461,11 @@ visNetwork(nodes_vis, edges_vis) %>%
 Si vos données comprennent des coordonnées géographiques, vous pouvez les visualiser sur une carte interactive.
 
 2.4.1 Chargement des données géographiques
-```{r,
+```{r}
+library(sf)
 # Chargement des données géographiques
-nodes_geo <- read_delim("data/geo/nodes.csv", delim = "\t", col_names = FALSE)
-edges_geo <- read_delim("data/geo/edges.csv", delim = "\t", col_names = FALSE)
+nodes_geo <- read_delim("/home/fcafiero/Documents/Cuso_R/data/geo/nodes.csv", delim = "\t", col_names = FALSE)
+edges_geo <- read_delim("/home/fcafiero/Documents/Cuso_R/data/geo/edges.csv", delim = "\t", col_names = FALSE)
 
 colnames(nodes_geo) <- c("id", "label", "lat", "lon")
 colnames(edges_geo) <- c("from", "to")
@@ -661,8 +474,10 @@ colnames(edges_geo) <- c("from", "to")
 nodes_sf <- st_as_sf(nodes_geo, coords = c("lon", "lat"), crs = 4326)
 ```
 
+
 2.4.2 Création du graphe géographique
-```{r,
+
+```{r}
 # Création du graphe avec tidygraph
 graph_geo <- tbl_graph(nodes = nodes_geo, edges = edges_geo, directed = FALSE)
 
@@ -672,8 +487,9 @@ graph_geo <- graph_geo %>%
   mutate(lon = as.numeric(lon), lat = as.numeric(lat))
 ```
 
+
 2.4.3 Visualisation avec leaflet
-```{r,
+```{r}
 library(leaflet)
 
 # Création de la carte interactive
@@ -696,7 +512,7 @@ leaflet() %>%
 
 2.5 Sauvegarde et exportation des visualisations
 2.5.1 Sauvegarde des graphiques statiques
-```{r,
+```{r}
 # Sauvegarde du dernier graphique ggplot en PNG
 ggsave("visualisation_avancee.png", width = 10, height = 8, dpi = 300)
 
@@ -704,11 +520,12 @@ ggsave("visualisation_avancee.png", width = 10, height = 8, dpi = 300)
 ggsave("visualisation_avancee.pdf", width = 10, height = 8)
 ```
 
-
 2.5.2 Exportation des visualisations interactives
 Vous pouvez exporter vos visualisations interactives au format HTML pour les partager.
 
-```{r,
+```{r}
+library(ggplot2)
+library(htmlwidgets)
 # Sauvegarde du graphique plotly
 htmlwidgets::saveWidget(ggplotly(p, tooltip = "text"), "graphique_interactif.html")
 
@@ -727,7 +544,7 @@ visSave(
 ```
 
 2.5.3 Exportation des cartes interactives
-```{r,
+```{r}
 # Sauvegarde de la carte leaflet
 library(htmlwidgets)
 saveWidget(leaflet() %>%
@@ -746,16 +563,4 @@ saveWidget(leaflet() %>%
                           color = "grey"),
            "carte_interactive.html")
 ```
-
-2.6 Conclusion
-Nous avons exploré différentes méthodes pour visualiser et interagir avec les réseaux en R. Les outils modernes comme ggraph, plotly, visNetwork et leaflet offrent de nombreuses possibilités pour analyser et présenter vos données de manière efficace et esthétique.
-
-N'hésitez pas à explorer davantage ces packages et à les adapter à vos propres données et besoins en recherche.
-
-
-
-
-
-
-
 
