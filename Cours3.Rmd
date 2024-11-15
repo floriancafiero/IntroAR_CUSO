@@ -1,0 +1,524 @@
+---
+title: "Cours_3_carto_geo"
+output: html_document
+date: '2024-11-18'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Vacances en occitanie: la bibliothèque 'sf'
+
+
+On utilise la bibliothèque 'sf', qui est une bibliothèque R pour travailler avec des données géospatiales. 'sf' signifie 'simple features' et est un format standard pour travailler avec des données géospatiales.
+
+
+```{r}
+setwd("~/Desktop/Cuso/Cours_geo")
+library(sf)
+occ_raw <- st_read(dsn = "data/Occitanie.gpkg", stringsAsFactors = FALSE)
+# Charge la couche géographique des communes d’Occitanie en utilisant le package sf et la fonction st_read().
+st_crs(occ_raw)
+# Cette fonction renvoie le système de référence de coordonnées (CRS) des données géospatiales 
+```
+
+
+Que nous dit cette sortie ?
+
+Geometry type: MULTIPOLYGON 
+
+Dans le SIG, un polygone est une forme bidimensionnelle ou tridimensionnelle définie par un ensemble de coordonnées x,y ordonnées. Il s'agit d'une forme fermée qui représente une zone unique et continue. Parmi les exemples de polygones, on peut citer un pâté de maisons, un lac ou un champ.
+
+Un multipolygone, en revanche, est une collection de plusieurs polygones. Ces polygones peuvent se chevaucher, être disjoints ou imbriqués. Un exemple de multipolygone peut être une collection de parcelles, où chaque parcelle est représentée par un polygone distinct, mais où tous les polygones forment ensemble une zone plus vaste, comme une ville ou un pays.
+
+Les polygones et les multipolygones peuvent tous deux être utilisés pour représenter des caractéristiques du monde réel dans un SIG, mais ils sont utilisés de différentes manières en fonction du type de données représentées.
+
+Vous utiliserez un multipolygone au lieu d'un polygone lorsque vous devrez représenter une entité composée de plusieurs zones non contiguës ou de plusieurs polygones individuels qui, ensemble, constituent une zone plus grande.
+
+Voici quelques exemples de situations dans lesquelles vous pouvez utiliser un multipolygone :
+
+Représentation d'un groupe d'îles composé de plusieurs îles non reliées entre elles.
+Représentation d'un lac ou d'une rivière composé(e) de plusieurs sections non contiguës.
+Représentation d'une ville composée de plusieurs quartiers ou districts, chacun ayant ses propres limites.
+Représentation d'un pays composé de plusieurs territoires ou enclaves qui ne sont pas reliés au continent.
+Représentation d'un bâtiment composé de plusieurs structures ou ailes qui ne sont pas reliées entre elles.
+En général, si l'élément que vous essayez de représenter peut être décomposé en plusieurs polygones distincts qui, ensemble, constituent une zone plus grande, un multipolygone sera le choix le plus approprié.
+
+
+Dimension: XY -
+
+Données bidimensionnelles.
+
+Bounding box: xmin: -0.3271723 ymin: 42.33292 xmax: 4.845565 ymax: 45.04557 -
+
+La boîte englobante (bounding box) des données est  un rectangle qui "englobeé toutes les données. "xmin" et "ymin" représentent les coordonnées du coin inférieur gauche de la boîte, tandis que "xmax" et "ymax" représentent les coordonnées du coin supérieur droit.
+
+Geodetic CRS: WGS 84 
+
+Cela indique que les données sont dans le système de référence géodésique WGS 84 (World Geodetic System 1984). C'est un système de coordonnées standard utilisé dans le GPS et est basé sur un ellipsoïde de référence qui approxime la forme de la Terre.
+
+Coordinate Reference System: User input: WGS 84
+
+Confirme que le système de référence de coordonnées entré est WGS 84.
+
+wkt: GEOGCRS["WGS 84", ...] - Cette section contient la représentation en texte bien connu (WKT) du système de référence de coordonnées. C'est une manière standard de décrire les systèmes de référence de coordonnées en texte. En voici quelques détails :
+
+ENSEMBLE["World Geodetic System 1984 ensemble", ...]: cela donne des informations sur l'ensemble des systèmes utilisés dans WGS 84.
+ELLIPSOID["WGS 84",6378137,298.257223563, LENGTHUNIT["metre",1]]: cela décrit l'ellipsoïde de référence utilisé, avec des détails tels que le rayon équatorial (6378137 mètres) et l'aplatissement inverse (298.257223563).
+PRIMEM["Greenwich",0, ANGLEUNIT["degree",0.0174532925199433]]: indique que le méridien de référence est celui de Greenwich.
+CS[ellipsoidal,2], AXIS["geodetic latitude (Lat)",north, ...], AXIS["geodetic longitude (Lon)",east, ...]: informations sur le système de coordonnées, indiquant qu'il est ellipsoïdal et basé sur la latitude et la longitude géodésiques.
+USAGE[ SCOPE["Horizontal component of 3D system."], AREA["World."], BBOX[-90,-180,90,180]]: information sur l'utilisation de ce système de coordonnées, indiquant qu'il est utilisé dans le monde entier pour la composante horizontale d'un système 3D.
+ID["EPSG",4326]: l'identifiant EPSG du système de référence de coordonnées, qui est une manière standard de référencer les systèmes de coordonnées. WGS 84 a l'identifiant EPSG 4326.
+
+
+Aucune projection n'a encore été choisie. On transforme la couche des communes, en utilisant une Projection conique conforme de Lambert (Lambert 93, EPSG : 2154) avec la fonction st_transform(): 
+
+```{r}
+occ <- st_transform(x = occ_raw, crs = 2154)
+```
+
+On réalise une carte du département de l'Aude.
+
+```{r}
+unique(occ$INSEE_DEP)
+#Pour connaitre la liste de tous les noms ou code de région, on peut utiliser la fonction unique()
+com11 <- occ[occ$INSEE_DEP == "11", ]
+#On sélectionne toutes les communes de l'Aude.
+plot(st_geometry(com11))
+#On dessine la carte
+```
+
+## Fusionner des entités
+
+```{r}
+regOCC <- st_union(occ)
+#On fusionne les communes de la région en un seul polygone 
+depOCC <- aggregate(occ[,"POPULATION"], by = list(occ$INSEE_DEP), sum)
+#Créez la couche géograpique des départements de la région
+# On utilise la fonction aggregate() pour regrouper les polygones et calculer les sommes des populations communales
+plot(st_geometry(occ), col = "darkseagreen3", border = "white", lwd = .5)
+#Cette ligne utilise la fonction plot pour créer un graphique des données géospatiales contenues dans occ. Les polygones sont colorés en vert clair (lightgreen), avec des bordures blanches, et une épaisseur de ligne de 0.5.
+plot(st_geometry(depOCC), col = NA, border = "black", lwd = 1, add = TRUE)
+# Cette ligne ajoute un autre calque au graphique, qui affiche les polygones dans depOCC (les départements). Les polygones n'ont pas de couleur de remplissage (col = NA), mais ont des bordures d'une couleur bleue claire (lightblue2) et une épaisseur de ligne de 1. L'argument add = TRUE signifie que cela est ajouté au graphique existant, plutôt que de créer un nouveau graphique.
+plot(regOCC, col = NA, border = "lightblue3", lwd = 2, add = TRUE)
+#Enfin, cette ligne ajoute un autre calque au graphique, affichant le polygone dans regOCC (la région fusionnée). Comme précédemment, il n'y a pas de couleur de remplissage, mais les bordures sont d'une couleur bleue légèrement différente (lightblue3) et ont une épaisseur de ligne de 2.
+```
+
+## Zones tampons
+
+On cherche à dessiner une zone de 5 km autour de la commune de Carcassonne.
+
+```{r}
+carcassonne <- com11[com11$INSEE_COM == "11069", ]
+carcassonne_zonetampon <- st_buffer(carcassonne, 10000)
+plot(st_geometry(com11), lwd = .5)
+plot(st_geometry(carcassonne), col = "blue", add = TRUE)
+plot(st_geometry(carcassonne_zonetampon), col = NA, lwd = 2, border = "orange", 
+     add = TRUE)
+```
+
+Quelles sont les communes présentes dans cette zone ?
+
+```{r}
+com11$in_buffer <- st_intersects(x = com11, carcassonne_zonetampon, sparse = FALSE)
+#Calcule la zone tampon
+
+communes_in_buffer <- com11[com11$in_buffer == TRUE, ]
+# Filtre les communes qui sont à l'intérieur de la zone tampon
+
+# Créer un tableau avec les colonnes d'intérêt
+tableau <- communes_in_buffer[, c("NOM_COM", "INSEE_COM", "POPULATION")]
+
+
+tableau_ordonne <- tableau[order(tableau$POPULATION, decreasing = TRUE), ]
+# Ordonne le tableau par population décroissante
+
+print(tableau_ordonne)
+# Affiche le tableau 
+```
+
+Particularité des objets "sf": on récupère plein de commentaires supplémentaires, des colonnes que l'on n'a pas demandé etc. Pour éviter ça, on peut transformer en dataframe, et supprimer la colonne "geom", qui est sinon toujours affichée
+
+```{r}
+# Convertir en dataframe classique
+tableau_df <- as.data.frame(tableau)
+
+# Supprimer la colonne geom
+communes_in_buffer <- st_set_geometry(communes_in_buffer, NULL)
+
+# Créer un tableau avec les colonnes d'intérêt
+tableau <- communes_in_buffer[, c("NOM_COM", "INSEE_COM", "POPULATION")]
+
+# Convertir en dataframe classique
+tableau_df <- as.data.frame(tableau)
+
+# Ordonner le tableau par population décroissante
+tableau_ordonne <- tableau_df[order(tableau_df$POPULATION, decreasing = TRUE), ]
+
+# Afficher le tableau
+print(tableau_ordonne)
+```
+
+## Au théâtre ce soir: calculer les distances
+
+On récupère les coordonnées du Théâtre en plein air de Carcassonne sur OpenStreetMap:
+
+https://www.openstreetmap.org/way/119906775#map=19/43.20489/2.36214
+
+```{r}
+library(sf)
+theatre_pt <- st_point(c(2.3620950,43.2048973))
+theatre_sfc <- st_sfc(theatre_pt, crs = (4326))
+theatre <- st_sf(name = "Theatre Jean Deschamps", geometry = theatre_sfc)
+theatre
+```
+
+Puis on va tenter de calculer des distances. Vérifions d'abord que nous projetons bien tout le temps de la manière.
+
+```{r}
+st_crs(theatre)
+st_crs(com11)
+```
+
+Oups, non ! Changeons ça !
+
+
+```{r}
+theatre <- st_transform(theatre, st_crs(com11))
+```
+
+On calcule ensuite les centroïdes de chaque commune:
+
+```{r}
+com11_centro <- st_centroid(st_geometry(com11))
+com11$dist_theatre <- st_distance(com11_centro, theatre)
+head(com11, 2)
+```
+
+On affiche alors une carte nous montrant les distances de chaque commune à notre théâtre:
+
+```{r}
+plot(com11["dist_theatre"])
+```
+
+On peut changer l'aspect: on repositionne la légende, affiche la position du théâtre par un point rouge, et élimine l'affichage des délimitations des communes.
+
+
+```{r}
+plot(com11["dist_theatre"], main = "Distance au théâtre Deschamps (en mètres)",  border = NA, graticule=TRUE,  reset = FALSE,  key.pos = 1, key.width = .15, key.length = .75)
+plot(st_geometry(theatre), pch = 20, col = "red", add = TRUE )
+```
+
+# Importer des données OpenStreetMaps
+
+```{r}
+library(osmdata)
+# Définition d'une bounding box
+q <- opq(bbox=st_bbox(st_transform(com11,4326)))
+# Extraction des theatres
+theatres <- add_osm_feature(opq = q, key = 'amenity', value = "theatre")
+theatres.sf <- osmdata_sf(theatres)
+theatres.sf.pts  <- theatres.sf$osm_points[!is.na(theatres.sf$osm_points$amenity),]
+theatres <- st_transform(theatres.sf.pts, st_crs(com11))
+theatres <- st_intersection(theatres, st_geometry(com11))
+```
+
+On crée la carte de l'Aude, et on y affiche la position des théâtres:
+
+```{r}
+# Affichage des theatres
+plot(st_geometry(com11), col="darkseagreen3", border="darkseagreen4")
+plot(st_geometry(theatres), add=TRUE, pch=20, col = "red2", cex = 1)
+```
+
+On peut compter les théâtres par commune:
+
+```{r}
+inter <- st_intersects(x = com11, y = theatres)
+com11$ntheatres <- sapply(inter, length)
+```
+
+Ou inventorier les communes sans théâtre:
+
+```{r}
+com11sstheatre <- com11[com11$ntheatres==0, ]
+```
+
+On calcule les distances au théâtre le plus proche:
+
+```{r}
+#On crée un index des theatres
+index <- st_nearest_feature(x = st_centroid(com11sstheatre), 
+                            y = theatres)
+#On calcule la distance aux centroïdes des communes sans théâtre
+com11sstheatre$dtheatres <- st_distance(x = st_centroid(com11sstheatre), 
+                                   y = theatres[index, ], 
+                                   by_element = TRUE)
+```
+Quels sont les endroits du département les plus loins d'un théâtre ?
+
+
+```{r}
+plot(com11sstheatre['dtheatres'], reset = F, 
+     main = "Aude: distance au théâtre le plus proche (en mètres)")
+plot(st_geometry(com11), col=NA, add= TRUE)
+plot(st_geometry(theatres), add=TRUE, pch=20, col = "red", cex = 1)
+```
+
+# Le package cartography
+
+
+## Symboles proportionnels
+
+Afficher la population en Occitanie
+
+```{r}
+library(sf)
+library(cartography)
+plot(st_geometry(occ), col = "grey80", border = "grey")
+# plot population
+propSymbolsLayer(
+  x = occ, 
+  var = "POPULATION", 
+  inches = 0.25, 
+  col = "brown4",
+  legend.pos = "topright",  
+  legend.title.txt = "Population totale"
+)
+# layout
+layoutLayer(title = "Distributions de la population en Occitanie",
+            sources = "Sources: Insee and IGN, 2018",
+            author = paste0("cartography ", packageVersion("cartography")),
+            frame = FALSE, north = FALSE, tabtitle = TRUE)
+# north arrow
+north(pos = "topleft")
+```
+
+## Cartes choroplèthes
+
+On calcule la densité de population:
+```{r}
+occ$POPDENS <- 1e6 * occ$POPULATION / st_area(occ)
+```
+
+Et on fait la carte:
+
+```{r}
+plot(st_geometry(occ), col = NA, border = NA, bg = "lightgrey")
+# plot population density
+choroLayer(
+  x = occ, 
+  var = "POPDENS",
+  method = "geom",
+  nclass=5,
+  col = carto.pal(pal1 = "sand.pal", n1 = 5),
+  border = "white", 
+  lwd = 0.5,
+  legend.pos = "topright", 
+  legend.title.txt = "Densité de la population\n(habitants par km2)",
+  add = TRUE
+) 
+# layout
+layoutLayer(title = "Distribution de la population en Occitanie", 
+            sources = "Sources: Insee and IGN, 2018",
+            author = paste0("cartography ", packageVersion("cartography")), 
+            frame = FALSE, north = FALSE, tabtitle = TRUE, theme= "sand.pal") 
+# north arrow
+north(pos = "topleft")
+```
+
+# Symboles proportionnels
+
+```{r}
+plot(st_geometry(occ), col="#f2efe9", border="#b38e43", bg = "#aad3df", 
+     lwd = 0.5)
+# Plot symbols with choropleth coloration
+propSymbolsTypoLayer(
+  x = occ, 
+  var = "POPULATION", 
+  inches = 0.5,
+  symbols = "square",
+  border = "white",
+  lwd = .5,
+  legend.var.pos = "topright", 
+  legend.var.title.txt = "Population",
+  var2 = "STATUT",
+  legend.var2.values.order = c("Préfecture de région", "Préfecture", "Sous-préfecture", 
+                               "Commune simple"),
+  col = carto.pal(pal1 = "multi.pal", n1 = 4),
+  legend.var2.pos = "bottomright",
+  legend.var2.title.txt = "Statut\nAdministratif"
+) 
+# layout
+layoutLayer(title="Densité de population en fonction du statut administratif - Occitanie", 
+            author = "cartography 2.1.3", 
+            sources = "Sources: Insee and IGN, 2018", 
+            scale = 5, tabtitle = TRUE, frame = FALSE)
+# north arrow
+north(pos = "topleft")
+
+```
+
+Pour un peu plus de clarté:
+
+```{r}
+
+plot(st_geometry(occ), col="#f2efe9", border="#b38e43", bg = "#aad3df", 
+     lwd = 0.5)
+# On dessine des symboles colorés
+occ_filtered <- subset(occ, POPULATION >= 10000)
+# On filtre après avoir dessiné la couche précédente ! Sinon les communes n'apparaissent pas.
+propSymbolsTypoLayer(
+  x = occ_filtered, 
+  var = "POPULATION", 
+  inches = 0.5,
+  symbols = "square",
+  border = "white",
+  lwd = .5,
+  legend.var.pos = "topright", 
+  legend.var.title.txt = "Population",
+  var2 = "STATUT",
+  legend.var2.values.order = c("Préfecture de région", "Préfecture", "Sous-préfecture", 
+                               "Commune simple"),
+  col = carto.pal(pal1 = "multi.pal", n1 = 4),
+  legend.var2.pos = "bottomright",
+  legend.var2.title.txt = "Statut\nAdministratif"
+) 
+# layout
+layoutLayer(title="Densité de population en fonction du statut administratif - Occitanie", 
+            author = "cartography 2.1.3", 
+            sources = "Sources: Insee and IGN, 2018", 
+            scale = 5, tabtitle = TRUE, frame = FALSE)
+# north arrow
+north(pos = "topleft")
+```
+
+# Carte étiquetée
+
+```{r}
+plot(st_geometry(occ), col = "#e4e9de", border = "darkseagreen4", 
+     bg = "lightblue1", lwd = 0.5)
+labelLayer(
+  x = occ_filtered, 
+  txt = "NOM_COM", 
+  col= "black", 
+  cex = 1, 
+  font = 4,
+  halo = TRUE, 
+  bg = "white", 
+  r = 0.1, 
+  overlap = TRUE, 
+  show.lines = FALSE
+)
+# map layout
+layoutLayer(
+  title = "Municipalités d'Occitanie de plus de 10.000 habitants", 
+  sources = "Sources: Insee and IGN, 2018",  
+  author = paste0("cartography ", packageVersion("cartography")), 
+  frame = FALSE,
+  north = TRUE, 
+  tabtitle = TRUE, 
+  theme = "taupe.pal"
+) 
+```
+
+On change d'échelle et on refiltre:
+
+```{r}
+occ_filtered2 <- subset(occ_filtered, POPULATION >= 25000)
+plot(st_geometry(occ), col = "#e4e9de", border = "darkseagreen4", 
+     bg = "lightblue1", lwd = 0.5)
+labelLayer(
+  x = occ_filtered2, 
+  txt = "NOM_COM", 
+  col= "black", 
+  cex = 0.6, 
+  font = 4,
+  halo = TRUE, 
+  bg = "white", 
+  r = 0.1, 
+  overlap = FALSE, 
+  show.lines = FALSE
+)
+# map layout
+layoutLayer(
+  title = "Municipalités d'Occitanie de plus de 10.000 habitants", 
+  sources = "Sources: Insee and IGN, 2018",  
+  author = paste0("cartography ", packageVersion("cartography")), 
+  frame = FALSE,
+  north = TRUE, 
+  tabtitle = TRUE, 
+  theme = "taupe.pal"
+) 
+```
+
+Attention: on a interdit aux étiquettes de se chevaucher. Ceci déforme l'idée qu'on se fait des communes:
+
+
+```{r}
+occ_filtered2 <- subset(occ_filtered, POPULATION >= 25000)
+plot(st_geometry(occ), col = "#e4e9de", border = "darkseagreen4", 
+     bg = "lightblue1", lwd = 0.5)
+labelLayer(
+  x = occ_filtered2, 
+  txt = "NOM_COM", 
+  col= "black", 
+  cex = 0.6, 
+  font = 4,
+  halo = TRUE, 
+  bg = "white", 
+  r = 0.1, 
+  overlap = TRUE, 
+  show.lines = FALSE
+)
+# map layout
+layoutLayer(
+  title = "Municipalités d'Occitanie de plus de 10.000 habitants", 
+  sources = "Sources: Insee and IGN, 2018",  
+  author = paste0("cartography ", packageVersion("cartography")), 
+  frame = FALSE,
+  north = TRUE, 
+  tabtitle = TRUE, 
+  theme = "taupe.pal"
+) 
+```
+
+Mais la carte serait illisible autrement...
+
+On peut aussi essayer de rendre les labels proportionnels à la population de la ville:
+
+```{r}
+# Normaliser la population pour qu'elle soit dans une plage utile pour cex (par exemple entre 0.5 et 2).
+min_size <- 0.5
+max_size <- 2.0
+norm_population <- (occ_filtered2$POPULATION - min(occ_filtered2$POPULATION)) / (max(occ_filtered2$POPULATION) - min(occ_filtered2$POPULATION))
+scaled_population <- min_size + norm_population * (max_size - min_size)
+
+# Utiliser scaled_population comme valeur pour cex
+plot(st_geometry(occ), col = "#e4e9de", border = "darkseagreen4", 
+     bg = "lightblue1", lwd = 0.5)
+labelLayer(
+    x = occ_filtered2,
+    txt = "NOM_COM",
+    col = "black",
+    cex = scaled_population,
+    font = 4,
+    halo = TRUE,
+    bg = "white",
+    r = 0.1,
+    overlap = FALSE,
+    show.lines = FALSE
+)
+# map layout
+layoutLayer(
+  title = "Municipalités d'Occitanie de plus de 10.000 habitants", 
+  sources = "Sources: Insee and IGN, 2018",  
+  author = paste0("cartography ", packageVersion("cartography")), 
+  frame = FALSE,
+  north = TRUE, 
+  tabtitle = TRUE, 
+  theme = "taupe.pal"
+) 
+```
+
