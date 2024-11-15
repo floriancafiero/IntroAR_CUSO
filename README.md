@@ -8,4 +8,4 @@ Introduction au tidyverse et à ggplot2
 
 # Cours 2: Analyse de réseaux
 
-
+# Cours 3: Cartographie
