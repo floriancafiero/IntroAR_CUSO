@@ -15,9 +15,8 @@ On utilise la bibliothèque 'sf', qui est une bibliothèque R pour travailler av
 
 
 ```{r}
-setwd("~/Desktop/Cuso/Cours_geo")
 library(sf)
-occ_raw <- st_read(dsn = "data/Occitanie.gpkg", stringsAsFactors = FALSE)
+occ_raw <- st_read(dsn = "/home/fcafiero/Documents/Cuso_R/Cours_geo/Cours_geo/data/Occitanie.gpkg", stringsAsFactors = FALSE)
 # Charge la couche géographique des communes d’Occitanie en utilisant le package sf et la fonction st_read().
 st_crs(occ_raw)
 # Cette fonction renvoie le système de référence de coordonnées (CRS) des données géospatiales 
