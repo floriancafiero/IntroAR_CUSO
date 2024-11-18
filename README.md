@@ -8,4 +8,11 @@ Introduction au tidyverse et à ggplot2
 
 # Cours 2: Analyse de réseaux
 
+Visualisation de réseaux 
+Mesures de centralité
+Plus courts chemins
+
 # Cours 3: Cartographie
+
+Cartes thématiques (chloroplètes, symboles proportionnels)
+
