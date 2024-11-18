@@ -109,12 +109,20 @@ plot(regOCC, col = NA, border = "lightblue3", lwd = 2, add = TRUE)
 On cherche à dessiner une zone de 5 km autour de la commune de Carcassonne.
 
 ```{r}
+# Sélectionne la commune de Carcassonne à partir du jeu de données 'com11'
 carcassonne <- com11[com11$INSEE_COM == "11069", ]
+
+# Crée une zone tampon (buffer) de 10 km autour de Carcassonne
 carcassonne_zonetampon <- st_buffer(carcassonne, 10000)
+
+# Affiche les géométries de toutes les communes avec un trait fin
 plot(st_geometry(com11), lwd = .5)
+
+# Ajoute la géométrie de Carcassonne en bleu par-dessus la carte précédente
 plot(st_geometry(carcassonne), col = "blue", add = TRUE)
-plot(st_geometry(carcassonne_zonetampon), col = NA, lwd = 2, border = "orange", 
-     add = TRUE)
+
+# Ajoute la zone tampon en contour orange, sans remplissage
+plot(st_geometry(carcassonne_zonetampon), col = NA, lwd = 2, border = "orange", add = TRUE)
 ```
 
 Quelles sont les communes présentes dans cette zone ?
@@ -166,38 +174,57 @@ On récupère les coordonnées du Théâtre en plein air de Carcassonne sur Open
 https://www.openstreetmap.org/way/119906775#map=19/43.20489/2.36214
 
 ```{r}
+# Charge la bibliothèque 'sf' pour manipuler des objets spatiaux
 library(sf)
-theatre_pt <- st_point(c(2.3620950,43.2048973))
-theatre_sfc <- st_sfc(theatre_pt, crs = (4326))
+
+# Crée un point avec les coordonnées (longitude, latitude) du théâtre
+theatre_pt <- st_point(c(2.3620950, 43.2048973))
+
+# Convertit le point en une collection d'entités spatiales (simple feature collection) avec le système de coordonnées EPSG:4326 (WGS 84)
+theatre_sfc <- st_sfc(theatre_pt, crs = 4326)
+
+# Crée un objet 'sf' avec un nom ("Theatre Jean Deschamps") et la géométrie associée
 theatre <- st_sf(name = "Theatre Jean Deschamps", geometry = theatre_sfc)
+
+# Affiche l'objet 'theatre' pour visualiser ses attributs et sa géométrie
 theatre
 ```
 
-Puis on va tenter de calculer des distances. Vérifions d'abord que nous projetons bien tout le temps de la manière.
+Puis on va tenter de calculer des distances. Vérifions d'abord que nous projetons bien tout le temps de la bonne manière.
 
 ```{r}
+# Affiche le système de coordonnées (CRS) utilisé par l'objet 'theatre'
 st_crs(theatre)
+
+# Affiche le système de coordonnées (CRS) utilisé par le jeu de données 'com11'
 st_crs(com11)
 ```
 
 Oups, non ! Changeons ça !
 
-
 ```{r}
+# Transforme l'objet 'theatre' pour qu'il utilise le même système de coordonnées (CRS) que 'com11'
 theatre <- st_transform(theatre, st_crs(com11))
 ```
 
 On calcule ensuite les centroïdes de chaque commune:
 
 ```{r}
+# Calcule le centroïde (point central) de chaque géométrie dans le jeu de données 'com11'
 com11_centro <- st_centroid(st_geometry(com11))
+
+# Calcule la distance entre chaque centroïde de 'com11' et le point 'theatre'
+# La distance est ajoutée en tant que nouvelle colonne 'dist_theatre' dans le data frame 'com11'
 com11$dist_theatre <- st_distance(com11_centro, theatre)
+
+# Affiche les deux premières lignes du data frame 'com11' avec la nouvelle colonne 'dist_theatre'
 head(com11, 2)
 ```
 
 On affiche alors une carte nous montrant les distances de chaque commune à notre théâtre:
 
 ```{r}
+# Affiche une carte des communes 'com11' en colorant chaque entité par la distance au théâtre
 plot(com11["dist_theatre"])
 ```
 
@@ -205,30 +232,75 @@ On peut changer l'aspect: on repositionne la légende, affiche la position du th
 
 
 ```{r}
-plot(com11["dist_theatre"], main = "Distance au théâtre Deschamps (en mètres)",  border = NA, graticule=TRUE,  reset = FALSE,  key.pos = 1, key.width = .15, key.length = .75)
-plot(st_geometry(theatre), pch = 20, col = "red", add = TRUE )
+# Trace une carte des communes, colorée en fonction de la distance au théâtre
+plot(
+  com11["dist_theatre"],                # Colorie les communes en fonction de la colonne 'dist_theatre'
+  main = "Distance au théâtre Deschamps (en mètres)",  # Titre de la carte
+  border = NA,                          # Supprime les bordures autour des polygones pour un affichage plus net
+  graticule = TRUE,                     # Affiche un quadrillage (graticule) sur la carte
+  reset = FALSE,                        # Préserve les paramètres graphiques pour permettre des ajouts (comme le point du théâtre)
+  key.pos = 1,                          # Position de la légende (en haut à droite)
+  key.width = 0.15,                     # Largeur de la légende
+  key.length = 0.75                     # Longueur de la légende
+)
+
+# Ajoute le point du théâtre sur la carte
+plot(
+  st_geometry(theatre),                 # Trace la géométrie du théâtre
+  pch = 20,                             # Utilise un symbole plein pour le point (code 20)
+  col = "red",                          # Couleur rouge pour le point du théâtre
+  add = TRUE                            # Superpose le point à la carte existante
+)
+
 ```
 
 # Importer des données OpenStreetMaps
 
 ```{r}
+# Charge le package 'osmdata' pour récupérer des données d'OpenStreetMap
 library(osmdata)
-# Définition d'une bounding box
-q <- opq(bbox=st_bbox(st_transform(com11,4326)))
-# Extraction des theatres
+
+# Étape 1 : Définir une bounding box (zone d'intérêt)
+# Utilise la fonction 'st_bbox' pour obtenir la boîte englobante de 'com11', projetée en EPSG:4326 (coordonnées WGS84)
+q <- opq(bbox = st_bbox(st_transform(com11, 4326)))
+
+# Étape 2 : Extraire les théâtres à l'intérieur de la bounding box
+# Spécifie que l'on recherche des entités avec le tag 'amenity' égal à 'theatre'
 theatres <- add_osm_feature(opq = q, key = 'amenity', value = "theatre")
+
+# Convertit les résultats OSM en objets 'sf' (simple features)
 theatres.sf <- osmdata_sf(theatres)
-theatres.sf.pts  <- theatres.sf$osm_points[!is.na(theatres.sf$osm_points$amenity),]
+
+# Étape 3 : Extraire les points d'intérêt (POI) avec un tag 'amenity' non nul
+# Filtre pour garder uniquement les points qui possèdent la colonne 'amenity'
+theatres.sf.pts <- theatres.sf$osm_points[!is.na(theatres.sf$osm_points$amenity), ]
+
+# Étape 4 : Transformer le système de coordonnées des points pour correspondre à celui de 'com11'
 theatres <- st_transform(theatres.sf.pts, st_crs(com11))
+
+# Étape 5 : Restreindre les théâtres à ceux qui se trouvent dans la zone géométrique de 'com11'
 theatres <- st_intersection(theatres, st_geometry(com11))
+
 ```
 
 On crée la carte de l'Aude, et on y affiche la position des théâtres:
 
 ```{r}
-# Affichage des theatres
-plot(st_geometry(com11), col="darkseagreen3", border="darkseagreen4")
-plot(st_geometry(theatres), add=TRUE, pch=20, col = "red2", cex = 1)
+# Affiche les géométries des communes 'com11'
+plot(
+  st_geometry(com11),              # Trace les polygones des communes
+  col = "darkseagreen3",           # Remplit les polygones avec la couleur 'darkseagreen3'
+  border = "darkseagreen4"         # Définit la couleur des bordures en 'darkseagreen4'
+)
+
+# Superpose les points représentant les théâtres sur la carte
+plot(
+  st_geometry(theatres),           # Trace la géométrie des théâtres
+  add = TRUE,                      # Superpose les points sans réinitialiser la carte
+  pch = 20,                        # Utilise un symbole plein pour les points (code 20)
+  col = "red2",                    # Définit la couleur des points en rouge
+  cex = 1                          # Taille des points
+)
 ```
 
 On peut compter les théâtres par commune:
@@ -236,12 +308,14 @@ On peut compter les théâtres par commune:
 ```{r}
 inter <- st_intersects(x = com11, y = theatres)
 com11$ntheatres <- sapply(inter, length)
+com11$ntheatres
 ```
 
 Ou inventorier les communes sans théâtre:
 
 ```{r}
 com11sstheatre <- com11[com11$ntheatres==0, ]
+com11sstheatre
 ```
 
 On calcule les distances au théâtre le plus proche:
@@ -259,11 +333,106 @@ Quels sont les endroits du département les plus loins d'un théâtre ?
 
 
 ```{r}
-plot(com11sstheatre['dtheatres'], reset = F, 
-     main = "Aude: distance au théâtre le plus proche (en mètres)")
-plot(st_geometry(com11), col=NA, add= TRUE)
-plot(st_geometry(theatres), add=TRUE, pch=20, col = "red", cex = 1)
+  # Trace la carte avec les distances au théâtre
+  plot(
+    com11sstheatre['dtheatres'],     # Colorie les communes en fonction de la colonne 'dtheatres'
+    reset = FALSE,                   # Conserve les paramètres graphiques pour ajouter d'autres éléments
+    main = "Aude: distance au théâtre le plus proche (en mètres)" # Titre de la carte
+  )
+
+  # Superpose les contours des communes pour plus de visibilité
+  plot(
+    st_geometry(com11),              # Affiche les géométries des communes sans remplissage
+    col = NA,                        # Pas de couleur de remplissage
+    add = TRUE                       # Superpose sur la carte existante
+  )
+
+  # Ajoute les points représentant les théâtres sur la carte
+  plot(
+    st_geometry(theatres),           # Trace la géométrie des théâtres
+    add = TRUE,                      # Superpose sur la carte existante
+    pch = 20,                        # Utilise des points pleins pour les symboles (code 20)
+    col = "red",                     # Couleur des points en rouge
+    cex = 1                          # Taille des points
+  )
+
 ```
+
+
+```{r}
+# Définir le nom du fichier PNG et les dimensions de l'image
+png("distance_theatre_aude.png", width = 1200, height = 800, res = 150)
+
+# Tracer la carte avec les distances au théâtre
+plot(
+  com11sstheatre['dtheatres'],     # Colorie les communes en fonction de la colonne 'dtheatres'
+  reset = FALSE,                   # Conserve les paramètres graphiques pour ajouter d'autres éléments
+  main = "Aude: distance au théâtre le plus proche (en mètres)" # Titre de la carte
+)
+
+# Superposer les contours des communes pour plus de visibilité
+plot(
+  st_geometry(com11),              # Affiche les géométries des communes sans remplissage
+  col = NA,                        # Pas de couleur de remplissage
+  add = TRUE                       # Superpose sur la carte existante
+)
+
+# Ajouter les points représentant les théâtres sur la carte
+plot(
+  st_geometry(theatres),           # Trace la géométrie des théâtres
+  add = TRUE,                      # Superpose sur la carte existante
+  pch = 20,                        # Utilise des points pleins pour les symboles (code 20)
+  col = "red",                     # Couleur des points en rouge
+  cex = 1                          # Taille des points
+)
+
+# Fermer le dispositif graphique pour finaliser l'enregistrement
+dev.off()
+```
+
+
+
+## L'accessibilité
+
+```{r}
+library(dichromat)
+library(png)
+
+# Lire l'image PNG
+original_image <- readPNG("distance_theatre_aude.png")
+
+# Convertir l'image en une matrice de couleurs RGB au format attendu par dichromat
+convert_to_rgb_matrix <- function(img) {
+  img_rgb <- round(img[,,1:3] * 255)
+  rgb_matrix <- apply(img_rgb, c(1, 2), function(x) {
+    rgb(x[1], x[2], x[3], maxColorValue = 255)
+  })
+  return(rgb_matrix)
+}
+
+# Convertir l'image originale en format compatible
+rgb_image <- convert_to_rgb_matrix(original_image)
+
+# Appliquer les filtres daltonisme
+deutan_image <- dichromat(rgb_image, type = "deutan")
+protan_image <- dichromat(rgb_image, type = "protan")
+tritan_image <- dichromat(rgb_image, type = "tritan")
+
+# Fonction pour enregistrer une carte en grand format
+save_large_plot <- function(image_matrix, filename, title) {
+  png(filename, width = 2000, height = 1500, res = 300)
+  par(mar = c(5, 5, 5, 5))
+  plot(as.raster(image_matrix), main = title, cex.main = 2)
+  dev.off()
+}
+
+# Enregistrer chaque carte avec un titre
+save_large_plot(rgb_image, "original.png", "Original")
+save_large_plot(matrix(deutan_image, nrow = nrow(rgb_image)), "deutan.png", "Deuteranopia")
+save_large_plot(matrix(protan_image, nrow = nrow(rgb_image)), "protan.png", "Protanopia")
+save_large_plot(matrix(tritan_image, nrow = nrow(rgb_image)), "tritan.png", "Tritanopia")
+```
+
 
 # Le package cartography
 
@@ -273,58 +442,89 @@ plot(st_geometry(theatres), add=TRUE, pch=20, col = "red", cex = 1)
 Afficher la population en Occitanie
 
 ```{r}
+# Charge les bibliothèques nécessaires
 library(sf)
 library(cartography)
-plot(st_geometry(occ), col = "grey80", border = "grey")
-# plot population
-propSymbolsLayer(
-  x = occ, 
-  var = "POPULATION", 
-  inches = 0.25, 
-  col = "brown4",
-  legend.pos = "topright",  
-  legend.title.txt = "Population totale"
+
+# Affiche les contours de la région 'occ' avec un fond gris clair
+plot(
+  st_geometry(occ),     # Affiche les géométries de 'occ'
+  col = "grey80",       # Remplit les polygones avec la couleur 'grey80'
+  border = "grey"       # Utilise une bordure grise pour les polygones
 )
-# layout
-layoutLayer(title = "Distributions de la population en Occitanie",
-            sources = "Sources: Insee and IGN, 2018",
-            author = paste0("cartography ", packageVersion("cartography")),
-            frame = FALSE, north = FALSE, tabtitle = TRUE)
-# north arrow
+
+# Ajoute des symboles proportionnels pour représenter la population
+propSymbolsLayer(
+  x = occ,              # Données spatiales pour la carte
+  var = "POPULATION",   # Colonne indiquant la variable à représenter (ici la population)
+  inches = 0.25,        # Taille des symboles proportionnels en pouces
+  col = "brown4",       # Couleur des symboles
+  legend.pos = "topright",  # Position de la légende (en haut à droite)
+  legend.title.txt = "Population totale" # Titre de la légende
+)
+
+# Ajoute des éléments de mise en page
+layoutLayer(
+  title = "Distributions de la population en Occitanie", # Titre principal de la carte
+  sources = "Sources: Insee and IGN, 2018",             # Sources des données
+  author = paste0("cartography ", packageVersion("cartography")), # Auteur et version du package
+  frame = FALSE,         # Désactive la bordure autour de la carte
+  north = FALSE,         # Désactive la flèche du nord dans la mise en page
+  tabtitle = TRUE        # Affiche le titre dans un onglet
+)
+
+# Ajoute une flèche du nord dans le coin supérieur gauche
 north(pos = "topleft")
+
 ```
 
 ## Cartes choroplèthes
 
 On calcule la densité de population:
 ```{r}
+# Calcule la densité de population pour chaque entité dans 'occ'
 occ$POPDENS <- 1e6 * occ$POPULATION / st_area(occ)
 ```
 
 Et on fait la carte:
 
 ```{r}
-plot(st_geometry(occ), col = NA, border = NA, bg = "lightgrey")
-# plot population density
+# Affiche la géométrie des communes de la région Occitanie
+plot(
+  st_geometry(occ),  # Extrait la géométrie du data frame 'occ'
+  col = NA,          # Pas de couleur de remplissage pour les polygones
+  border = NA,       # Pas de bordure pour les polygones
+  bg = "lightgrey"   # Fond de carte en gris clair
+)
+
+# Ajoute une couche choroplèthe pour représenter la densité de population
 choroLayer(
-  x = occ, 
-  var = "POPDENS",
-  method = "geom",
-  nclass=5,
-  col = carto.pal(pal1 = "sand.pal", n1 = 5),
-  border = "white", 
-  lwd = 0.5,
-  legend.pos = "topright", 
-  legend.title.txt = "Densité de la population\n(habitants par km2)",
-  add = TRUE
-) 
-# layout
-layoutLayer(title = "Distribution de la population en Occitanie", 
-            sources = "Sources: Insee and IGN, 2018",
-            author = paste0("cartography ", packageVersion("cartography")), 
-            frame = FALSE, north = FALSE, tabtitle = TRUE, theme= "sand.pal") 
-# north arrow
+  x = occ,                             # Données spatiales (Occitanie)
+  var = "POPDENS",                     # Variable à représenter (densité de population)
+  method = "geom",                     # Utilise des classes géométriques pour la classification
+  nclass = 7,                          # Nombre de classes (5 classes)
+  col = carto.pal(pal1 = "sand.pal", n1 = 7), # Palette de couleurs 'sand.pal'
+  border = "white",                    # Bordures blanches autour des polygones
+  lwd = 0.5,                           # Épaisseur des bordures
+  legend.pos = "bottomright",             # Position de la légende (en bas à droite)
+  legend.title.txt = "Densité de la population\n(habitants par km²)", # Titre de la légende
+  add = TRUE                           # Superpose cette couche sur la carte existante
+)
+
+# Ajoute des éléments de mise en page
+layoutLayer(
+  title = "Distribution de la population en Occitanie", # Titre principal de la carte
+  sources = "Sources: Insee and IGN, 2018",            # Sources des données
+  author = paste0("cartography ", packageVersion("cartography")), # Auteur et version du package
+  frame = FALSE,                   # Désactive la bordure autour de la carte
+  north = FALSE,                   # Désactive la flèche du nord dans la mise en page
+  tabtitle = TRUE,                 # Affiche le titre dans un onglet
+  theme = "sand.pal"               # Utilise le thème 'sand.pal'
+)
+
+# Ajoute une flèche du nord dans le coin supérieur gauche
 north(pos = "topleft")
+
 ```
 
 # Symboles proportionnels
