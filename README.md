@@ -16,7 +16,7 @@ Cours "Introduction à R" - Conférence Universitaire de Suisse Occidentale
 # Cours 3: Cartographie
 
 * Traitement de GeoPackage
-* Cartes thématiques (chloroplètes, symboles proportionnels)
+* Cartes thématiques (chloroplèthes, symboles proportionnels)
 * Calculs statistiques et représentation cartographique
 * Intégration de données OpenStreetMap
 
