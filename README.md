@@ -16,3 +16,5 @@ Plus courts chemins
 
 Cartes thématiques (chloroplètes, symboles proportionnels)
 
+# Cours 4: Traitement automatique du langage
+
