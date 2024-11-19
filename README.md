@@ -14,7 +14,9 @@ Plus courts chemins
 
 # Cours 3: Cartographie
 
+Traitement de GeoPackage
 Cartes thématiques (chloroplètes, symboles proportionnels)
+Intégration calculs statistiques / cartographie
 
 # Cours 4: Traitement automatique du langage
 
