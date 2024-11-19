@@ -21,3 +21,6 @@ Cours "Introduction à R" - Conférence Universitaire de Suisse Occidentale
 
 # Cours 4: Traitement automatique du langage
 
+* 
+*
+*
