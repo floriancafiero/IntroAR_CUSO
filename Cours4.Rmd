@@ -1,0 +1,96 @@
+---
+title: "Initiation à la Textométrie avec R"
+author: "Votre Nom"
+date: "2024-11-25"
+output: html_document
+---
+
+# Introduction
+
+La textométrie est une discipline qui combine des approches statistiques et informatiques pour analyser des corpus de textes. Elle offre aux chercheurs en sciences humaines des outils puissants pour explorer des volumes importants de données textuelles, permettant ainsi de révéler des structures, des thèmes et des tendances qui ne sont pas immédiatement apparents à la lecture traditionnelle.
+
+## Objectifs du TP
+
+Ce travail pratique a pour objectif de vous initier aux techniques fondamentales de la textométrie en utilisant le langage R. À travers un exemple fil rouge, vous serez amenés à :
+
+- **Manipuler et préparer des corpus textuels** : importation, nettoyage et structuration des données.
+- **Réaliser des analyses lexicales** : calcul des fréquences, analyse des co-occurrences, visualisation des données.
+- **Explorer des thématiques** : extraction de topics, classification des textes.
+- **Interpréter les résultats** : mise en contexte des analyses dans une perspective en sciences humaines.
+
+## Présentation de l'exemple fil rouge
+
+Pour donner une cohérence à ce TP, nous travaillerons sur un corpus de **discours politiques français** prononcés lors des dernières élections présidentielles. Ce corpus comprend les discours de plusieurs candidats, ce qui nous permettra :
+
+- D'analyser les spécificités lexicales de chaque candidat.
+- D'identifier les thèmes majeurs abordés pendant la campagne.
+- De comparer les approches discursives en fonction des orientations politiques.
+
+Ce choix de corpus est pertinent pour des doctorants en sciences humaines, car il offre des possibilités d'analyse en sociologie, science politique, linguistique, communication, etc.
+
+## Organisation du TP
+
+Le TP est structuré en plusieurs parties progressives :
+
+1. **Préparation et exploration des données**
+   - Importation du corpus dans R.
+   - Nettoyage et prétraitement des textes.
+   - Exploration initiale des données.
+
+2. **Analyse lexicale**
+   - Calcul des fréquences de mots.
+   - Visualisation des mots les plus fréquents.
+   - Analyse des co-occurrences et des réseaux lexicaux.
+
+3. **Analyse thématique**
+   - Application de modèles de topics (LDA).
+   - Interprétation des thèmes extraits.
+   - Classification des documents selon les thèmes.
+
+4. **Analyse comparative**
+   - Comparaison des discours entre les candidats.
+   - Identification des mots et thèmes spécifiques à chaque candidat.
+   - Analyse des évolutions thématiques au cours de la campagne.
+
+5. **Visualisation et interprétation des résultats**
+   - Création de graphiques avancés pour présenter les analyses.
+   - Discussion des résultats dans une perspective en sciences humaines.
+
+## Prérequis
+
+- **Connaissances en R** : notions de base sur la manipulation de données et l'utilisation de packages.
+- **Intérêt pour l'analyse textuelle** : aucune expertise préalable en textométrie n'est requise, mais une curiosité pour les méthodes quantitatives en analyse de textes sera bénéfique.
+- **Packages R nécessaires** :
+  - `tidyverse`
+  - `quanteda`
+  - `topicmodels`
+  - `ggplot2`
+  - `igraph` (pour les graphes de co-occurrences)
+
+Assurez-vous d'avoir ces packages installés avant de commencer.
+
+## Modalités pratiques
+
+- **Durée estimée** : environ 4 heures.
+- **Travail individuel ou en petits groupes** : favorise les échanges et la discussion des résultats.
+- **Supports fournis** :
+  - Corpus de textes au format `.txt`.
+  - Scripts R de base pour démarrer.
+
+## Résultats attendus
+
+À l'issue de ce TP, vous serez en mesure de :
+
+- Importer et préparer un corpus textuel pour l'analyse en R.
+- Réaliser des analyses lexicales et thématiques de base.
+- Interpréter les résultats de ces analyses dans le contexte des sciences humaines.
+- Visualiser les données textuelles de manière informative.
+
+## Perspectives
+
+La textométrie est un domaine en pleine expansion qui offre de nombreuses opportunités pour les recherches en sciences humaines. Les compétences acquises lors de ce TP pourront être appliquées à vos propres corpus et problématiques de recherche.
+
+---
+
+Nous vous souhaitons une bonne exploration de la textométrie avec R !
+
