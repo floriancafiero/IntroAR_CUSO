@@ -67,7 +67,7 @@ install.packages(c("tidyverse", "quanteda"))
 # Charger les packages
 library(tidyverse)
 library(quanteda)
-'''
+```
 
 
 ## 1.2 Nettoyage de corpus
@@ -86,8 +86,34 @@ corpus_df <- corpus_df %>%
 
 # Aperçu des textes nettoyés
 head(corpus_df$text_clean)
+```
 
-'''
+```r
+# Création d'un objet corpus
+corpus <- corpus(corpus_df, text_field = "text_clean")
+
+# Résumé du corpus
+summary(corpus)
+
+# Statistiques descriptives du corpus
+corpus_summary <- textstat_summary(corpus)
+corpus_summary
+
+
+# Longueur des documents (en nombre de mots)
+doc_lengths <- ntoken(corpus)
+
+# Visualisation avec ggplot2
+ggplot(data = tibble(doc = names(doc_lengths), length = doc_lengths)) +
+  geom_histogram(aes(x = length), bins = 20, fill = "blue", alpha = 0.7) +
+  labs(
+    title = "Distribution des longueurs de documents",
+    x = "Nombre de mots",
+    y = "Nombre de documents"
+  ) +
+  theme_minimal()
+
+```
 
 
 
