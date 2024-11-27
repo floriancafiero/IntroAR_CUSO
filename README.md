@@ -22,6 +22,7 @@ Cours "Introduction à R" - Conférence Universitaire de Suisse Occidentale
 
 # Cours 4: Traitement automatique du langage
 
-* 
-*
-*
+* Tokenization
+* Détection de réemploi
+* Notion de distance en textométrie
+* Application des réseaux à l'étude des textes.
